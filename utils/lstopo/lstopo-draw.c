@@ -16,8 +16,10 @@
 #include <math.h>
 #include <time.h>
 
-#include "lstopo.h"
 
+
+#include "lstopo.h"
+#include "lstopo-pcislot.h"
 #define LSTOPO_COLOR(r,g,b) (struct lstopo_color) { r, g, b, 0 }
 #define LSTOPO_COLOR_GREY(x) (struct lstopo_color) { x, x, x, 0 }
 #define LSTOPO_COLOR_WHITE LSTOPO_COLOR_GREY(0xff)
@@ -114,6 +116,45 @@ lstopo_palette_init(struct lstopo_output *loutput)
 
   /* use the color palette by default */
   loutput->palette = &lstopo_main_palette;
+}
+
+
+
+char * find_pci_slot(const char* pcibus){
+    const char *cmd = "sudo dmidecode -t slot | grep -E 'Designation|Bus Address'| tr -d '\\t ' | cut -d':' -f2-";
+    char inLine[1024];
+    char inLine_0[1024];
+    char *temp=inLine+5;
+    char* result = NULL;
+    int found = 0;
+    int i=0;
+    FILE *fp = popen(cmd, "r");
+    if (!fp)
+    {
+        perror("popen failed:");
+        exit(1);
+    }
+
+    while (fgets(inLine, sizeof(inLine), fp) != NULL)
+    {
+        inLine[strcspn(inLine, "\n")] = 0;
+        if(i%2!=0 && 0==strcmp(temp,pcibus)){
+            found=1;
+            break;
+        }
+        strcpy(inLine_0, inLine);
+        i++;
+       
+    }
+    pclose(fp);
+    if(found==1){
+        result = (char*)malloc(sizeof(inLine_0));
+        strcpy(result, inLine_0);
+    }else{
+        result = (char*)malloc(sizeof(3));
+        strcpy(result, "");
+    }
+    return  result;
 }
 
 void
@@ -1239,7 +1280,11 @@ prepare_text(struct lstopo_output *loutput, hwloc_obj_t obj)
     if (loutput->pci_collapse_enabled && lud->pci_collapsed > 1) {
       n = snprintf(lud->text[0].text, sizeof(lud->text[0].text), "%d x { %s %s }", lud->pci_collapsed, _text, busid);
     } else {
-      n = snprintf(lud->text[0].text, sizeof(lud->text[0].text), "%s %s", _text, busid);
+      char* te = find_pci_slot(busid);
+      n = snprintf(lud->text[0].text, sizeof(lud->text[0].text), "%s %s %s", _text, busid, te);
+      printf("find: %s %s", busid, te);
+      free(te);
+
     }
   } else {
     /* normal object text */
