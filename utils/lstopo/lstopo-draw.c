@@ -1282,7 +1282,7 @@ prepare_text(struct lstopo_output *loutput, hwloc_obj_t obj)
     } else {
       char* te = find_pci_slot(busid);
       n = snprintf(lud->text[0].text, sizeof(lud->text[0].text), "%s %s %s", _text, busid, te);
-      printf("find: %s %s", busid, te);
+      //printf("find: %s %s", busid, te);
       free(te);
 
     }
